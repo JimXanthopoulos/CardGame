@@ -34,7 +34,7 @@ typedef struct
     int last_winner;
 } GameState;
 
-// polu pragma :(
+
 void menu(GameState *game);
 void createAcc(GameState *game);
 void login(GameState *game);
@@ -64,12 +64,12 @@ int main()
     srand(time(NULL));
     GameState game;
     
-    // Initialize to game state
+    // Initialize game state
     game.main_deck = malloc(52 * sizeof(Card));
     game.main_deck_size = 52;
     createDeck(game.main_deck);
     
-    // Initialize paikth
+    // Initialize player
     for (int i = 0; i < MAX_PLAYERS; i++) {
         game.players[i].id = NULL;
         game.players[i].deck = NULL;
@@ -219,7 +219,7 @@ void createAcc(GameState *game)
     game->player_count++;
     game->current_player_index = index;
 
-    // Sort meta thn dhmiourgeia neou paikth
+    // Sort after creation of new player
     quicksortPlayers(game->players, 0, game->player_count - 1);
 
     printf("Created account with username: %s\n", game->players[index].id);
@@ -363,7 +363,7 @@ void playRound(GameState *game)
             current_player->score += 3;
             current_winner = 0;
             
-            // o paikths pairnei kai tis 2 kartes giati kerdise
+            // player gets the cards that are played because they won
             addCardToDeck(current_player, playerCard);
             addCardToDeck(current_player, computerCard);
             
@@ -373,7 +373,7 @@ void playRound(GameState *game)
             current_player->score = (current_player->score > 0) ? current_player->score - 1 : 0;
             current_winner = 1;
             
-            // *idio me to panw alla gia to pc 
+            // pc gets the cards that are played because they won
             addCardToDeck(&game->computer, playerCard);
             addCardToDeck(&game->computer, computerCard);
             
@@ -383,7 +383,7 @@ void playRound(GameState *game)
             game->consecutive_ties++;
         }
 
-        // afairesh prwths kartas apo to deck
+        // first card removed from deck
         for (int i = 0; i < current_player->deckSize - 1; i++) {
             current_player->deck[i] = current_player->deck[i + 1];
         }
@@ -394,7 +394,7 @@ void playRound(GameState *game)
         current_player->deckSize--;
         game->computer.deckSize--;
 
-        // !!! elegxos gia 3 sunexomenes isopalies !!!
+        // !!! check from 3 consecutive ties !!!
         if (game->consecutive_ties >= 3) {
             printf("Three consecutive ties! Shuffling both decks\n");
             shuffle(current_player->deck, current_player->deckSize);
@@ -402,7 +402,7 @@ void playRound(GameState *game)
             game->consecutive_ties = 0;
         }
         
-        // update ton teleutaio nikhth se periptwsh pou uparxei isopalia
+        // update the last winner in case of tie
         if (current_winner != -1) {
             if (game->last_winner == current_winner) {
                 game->consecutive_ties = 0;
@@ -416,7 +416,7 @@ void playRound(GameState *game)
         printf("Cards remaining - %s: %d, Computer: %d\n", 
                current_player->id, current_player->deckSize, game->computer.deckSize);
 
-        // errwthsh gia sunexeia...
+        // continue...?
         if (current_player->deckSize > 0 && game->computer.deckSize > 0) {
             printf("\nDo you want to continue to the next round? (1 = Yes, 0 = No): ");
             if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
@@ -441,13 +441,13 @@ void playRound(GameState *game)
 
 void handleTie(GameState *game, Player *player, Card playerCard, Card computerCard)
 {
-    // epistrofh kartwn sthn main deck
+    // return to the main deck
     if (game->main_deck_size < 52) {
         game->main_deck[game->main_deck_size++] = playerCard;
         game->main_deck[game->main_deck_size++] = computerCard;
     }
     
-    // moirazei nea karta
+    // give out new card
     if (game->main_deck_size >= 2) {
         addCardToDeck(player, game->main_deck[game->main_deck_size - 2]);
         addCardToDeck(&game->computer, game->main_deck[game->main_deck_size - 1]);
@@ -471,7 +471,7 @@ void dealCards(GameState *game, int numCards)
 
     Player *current_player = &game->players[game->current_player_index];
     
-    // Free uparxouses deck
+    // Free existing decks
     free(current_player->deck);
     free(game->computer.deck);
     
@@ -487,13 +487,13 @@ void dealCards(GameState *game, int numCards)
     current_player->deckSize = numCards;
     game->computer.deckSize = numCards;
 
-    // moirasia kartwn 
+    // give out cards
     for (int i = 0; i < numCards; i++) {
         current_player->deck[i] = game->main_deck[i];
         game->computer.deck[i] = game->main_deck[i + numCards];
     }
 
-    // afairesh to kartwn apo to main deck 
+    // remove cards from main deck 
     for (int i = 0; i < game->main_deck_size - (2 * numCards); i++) {
         game->main_deck[i] = game->main_deck[i + (2 * numCards)];
     }
@@ -551,11 +551,11 @@ void saveGame(GameState *game)
         return;
     }
 
-    // save arithmo paiktwn kai to index tou current 
+    // save the number of players and the index of current player
     fprintf(file, "PLAYER_COUNT:%d\n", game->player_count);
     fprintf(file, "CURRENT_PLAYER_INDEX:%d\n", game->current_player_index);
 
-    // Save olous tous paiktes
+    // Save for all the players
     for (int i = 0; i < game->player_count; i++) {
         fprintf(file, "PLAYER_ID:%s\n", game->players[i].id);
         fprintf(file, "PLAYER_SCORE:%d\n", game->players[i].score);
@@ -579,7 +579,7 @@ void saveGame(GameState *game)
         fprintf(file, "MAIN_CARD:%d %c\n", game->main_deck[i].rank, game->main_deck[i].suit);
     }
 
-    // Save round info kai game state
+    // Save round info and game state
     fprintf(file, "ROUND:%d\n", game->round);
     fprintf(file, "CONSECUTIVE_TIES:%d\n", game->consecutive_ties);
     fprintf(file, "LAST_WINNER:%d\n", game->last_winner);
@@ -717,22 +717,11 @@ void loadGame(GameState *game)
     
     fclose(file);
     
-    // epanafora tou pc id
+    // restore pc id
     game->computer.id = strdup("Computer");
     
-    // sort meta to load
+    // sort after load
     quicksortPlayers(game->players, 0, game->player_count - 1);
-    
-    
-    /*if (game->player_count > 0) {
-        printf("Available players: ");
-        for (int i = 0; i < game->player_count; i++) {
-            if (game->players[i].id) {
-                printf("%s ", game->players[i].id);
-            }
-        }
-        printf("\n");
-    }*/
 }
 
 void dispScore(GameState *game)
@@ -824,7 +813,7 @@ int partition(Player players[], int low, int high)
     return (i + 1);
 }
 
-// Quicksort gia thn taxinomhsh paiktwn (me id)
+// Quicksort for players(id)
 
 void quicksortPlayers(Player players[], int low, int high)
 {
@@ -835,7 +824,7 @@ void quicksortPlayers(Player players[], int low, int high)
     }
 }
 
-// duadikh anazhthsh gia thn euresh sugkekrimenou paikth 
+// binary search for player's username
 int binarySearchPlayers(Player players[], int l, int r, const char *username)
 {
     while (l <= r) {
